@@ -1,0 +1,70 @@
+nb_sujets = 20;
+tableau_resultats = []; % Colonne 1 : Yeux ouverts | Colonne 2 : Yeux fermés
+
+for sujet = 1:nb_sujets
+    nom_fichier = sprintf('subject_%02d.mat', sujet);
+    load(nom_fichier);
+
+    s = SIGNAL;
+    col18 = s(:,18);
+    debut = find(col18 == 1);
+    fin = debut + 5120;
+    fenetrefermee = [debut fin];
+
+    col19 = s(:,19);
+    debut2 = find(col19 == 1);
+    fin2 = debut2 + 5120;
+    fenetreouvert = [debut2 fin2];
+
+    Fs = 512;
+    nb_blocs = min(size(fenetrefermee, 1), size(fenetreouvert, 1));
+
+    % Remise à zéro des tableaux pour chaque nouveau patient
+    tableau_alpha_ferme = [];
+    tableau_alpha_ouvert = [];
+
+    for i = 1:nb_blocs
+        % --- Extraction et FFT : Fenêtre FERMÉE ---
+        bloc1 = fenetrefermee(i,:);
+        lignes1 = bloc1(1):1:bloc1(2);
+        valeursbloc1 = s(lignes1,:);
+        E1 = valeursbloc1(:,[1 3]);
+
+        N = length(E1(:,2));
+        fftE1 = abs(fft(E1(:,2) - mean(E1(:,2))) / N);
+        fftE1 = fftE1(1:floor(N/2)+1);
+        fftE1(2:end-1) = 2 * fftE1(2:end-1);
+        f = Fs * (0:floor(N/2)) / N;
+        fftE1_extrait = fftE1((8<=f) & (f<=12));
+        Somme_valeurs_E1 = sum(fftE1_extrait);
+        tableau_alpha_ferme = [tableau_alpha_ferme Somme_valeurs_E1];
+
+        % --- Extraction et FFT : Fenêtre OUVERTE ---
+        bloc2 = fenetreouvert(i,:);
+        lignes2 = bloc2(1):1:bloc2(2);
+        valeursbloc2 = s(lignes2,:);
+        E2 = valeursbloc2(:,[1 3]);
+
+        N2 = length(E2(:,2));
+        fftE2 = abs(fft(E2(:,2) - mean(E2(:,2))) / N2);
+        fftE2 = fftE2(1:floor(N2/2)+1);
+        fftE2(2:end-1) = 2 * fftE2(2:end-1);
+        f2 = Fs * (0:floor(N2/2)) / N2;
+        fftE2_extrait = fftE2((8<=f2) & (f2<=12));
+        Somme_valeurs_E2 = sum(fftE2_extrait);
+        tableau_alpha_ouvert = [tableau_alpha_ouvert Somme_valeurs_E2];
+    end
+
+    moyenne_alpha_ouvert = mean(tableau_alpha_ouvert);
+    moyenne_alpha_ferme = mean(tableau_alpha_ferme);
+
+    % Ajout d'une nouvelle ligne [yeux ouverts, yeux fermés] pour ce patient
+    tableau_resultats = [tableau_resultats; moyenne_alpha_ouvert moyenne_alpha_ferme sujet];
+end
+
+% Affichage propre dans la console avec nom de colonnes
+tableau_final = array2table(tableau_resultats, 'VariableNames', {'Yeux_Ouverts', 'Yeux_Fermes','Sujet'})
+
+tableau_final_moyenne = [mean(tableau_final(:,1)) mean(tableau_final(:,2))]
+
+hist(['ouvert','ferme'] ,tableau_final_moyenne)
