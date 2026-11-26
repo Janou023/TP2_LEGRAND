@@ -18,7 +18,7 @@ for i = 1:nb_blocs
     bloc1 = fenetrefermee(i,:);
     lignes1 = bloc1(1):1:bloc1(2);
     valeursbloc1 = s(lignes1,:);
-    E1 = valeursbloc1(:,[1 2]);
+    E1 = valeursbloc1(:,[1 3]);
 
     N = length(E1(:,2));
     fftE1 = abs(fft(E1(:,2) - mean(E1(:,2))) / N);
@@ -30,7 +30,7 @@ for i = 1:nb_blocs
     bloc2 = fenetreouvert(i,:);
     lignes2 = bloc2(1):1:bloc2(2);
     valeursbloc2 = s(lignes2,:);
-    E2 = valeursbloc2(:,[1 2]);
+    E2 = valeursbloc2(:,[1 3]);
 
     N2 = length(E2(:,2));
     fftE2 = abs(fft(E2(:,2) - mean(E2(:,2))) / N2);

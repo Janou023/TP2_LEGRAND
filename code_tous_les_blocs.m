@@ -6,7 +6,7 @@ fenetrefermee = [debut fin];
 
 col19 = s(:,19);
 debut2 = find(col19 == 1);
-fin2 = debut2 + 5120;
+fin2 = debut2 + 5119;
 fenetreouvert = [debut2 fin2];
 
 Fs = 512;
