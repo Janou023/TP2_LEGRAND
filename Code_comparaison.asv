@@ -1,0 +1,76 @@
+% --- Choix du fichier à la souris : le sujet est déduit automatiquement ---
+[nom_fichier, chemin] = uigetfile('subject_*.mat', 'Choisir un sujet');
+if isequal(nom_fichier, 0)
+    error('Aucun fichier sélectionné.');
+end
+donnees = load(fullfile(chemin, nom_fichier));
+champs = fieldnames(donnees);
+s = donnees.(champs{1});   
+sujet = str2double(regexp(nom_fichier, '\d+', 'match', 'once'));  
+
+% --- Choix de l'électrode ---
+num_electrode = 14;   
+noms_electrodes = {'FP1','FP2','FC5','FC6','FZ','T7','CZ','T8', ...
+                   'P7','P3','PZ','P4','P8','O1','Oz','O2'};
+nom_electrode = noms_electrodes{num_electrode};
+col_electrode = num_electrode + 1;   
+
+col18 = s(:,18);
+debut = find(col18 == 1);
+fin = debut + 5120;
+fenetrefermee = [debut fin];
+col19 = s(:,19);
+debut2 = find(col19 == 1);
+fin2 = debut2 + 5120;
+fenetreouvert = [debut2 fin2];
+Fs = 512;
+nb_blocs = min(size(fenetrefermee, 1), size(fenetreouvert, 1));
+figure('Position', [100 100 1200 700]);
+
+for i = 1:nb_blocs
+    % --- Extraction et FFT : Fenêtre FERMÉE ---
+    bloc1 = fenetrefermee(i,:);
+    lignes1 = bloc1(1):1:bloc1(2);
+    valeursbloc1 = s(lignes1,:);
+    E1 = valeursbloc1(:,[1 col_electrode]);                          
+    N = length(E1(:,2));
+    fftE1 = abs(fft(E1(:,2) - mean(E1(:,2))) / N);
+    fftE1 = fftE1(1:floor(N/2)+1);
+    fftE1(2:end-1) = 2 * fftE1(2:end-1);
+    f = Fs * (0:floor(N/2)) / N;
+
+    % --- Extraction et FFT : Fenêtre OUVERTE ---
+    bloc2 = fenetreouvert(i,:);
+    lignes2 = bloc2(1):1:bloc2(2);
+    valeursbloc2 = s(lignes2,:);
+    E2 = valeursbloc2(:,[1 col_electrode]);                         
+    N2 = length(E2(:,2));
+    fftE2 = abs(fft(E2(:,2) - mean(E2(:,2))) / N2);
+    fftE2 = fftE2(1:floor(N2/2)+1);
+    fftE2(2:end-1) = 2 * fftE2(2:end-1);
+    f2 = Fs * (0:floor(N2/2)) / N2;
+
+    % --- Colonne de gauche : Signaux temporels superposés ---
+    subplot(nb_blocs, 2, 2*i - 1);
+    plot(E1(:,1), E1(:,2));
+    hold on;
+    plot(E2(:,1), E2(:,2));
+    hold off;
+    title(['Signal temporel - Bloc ' num2str(i)]);
+    legend('Fermée', 'Ouverte');
+    grid on;
+
+    % --- Colonne de droite : FFT superposées ---
+    subplot(nb_blocs, 2, 2*i);
+    plot(f, fftE1);
+    hold on;
+    plot(f2, fftE2);
+    hold off;
+    xlim([8 12]);
+    title(['FFT - Bloc ' num2str(i)]);
+    legend('Fermée', 'Ouverte');
+    grid on;
+end
+
+sgtitle(['Sujet ' sprintf('%02d', sujet) ' - Électrode ' ...
+         nom_electrode ]);

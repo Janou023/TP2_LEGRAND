@@ -1,14 +1,28 @@
-s = SIGNAL;
+% --- Choix du fichier à la souris : le sujet est déduit automatiquement ---
+[nom_fichier, chemin] = uigetfile('subject_*.mat', 'Choisir un sujet');
+if isequal(nom_fichier, 0)
+    error('Aucun fichier sélectionné.');
+end
+donnees = load(fullfile(chemin, nom_fichier));
+champs = fieldnames(donnees);
+s = donnees.(champs{1});    % récupère la matrice, quel que soit son nom
+sujet = str2double(regexp(nom_fichier, '\d+', 'match', 'once'));   % 'subject_07.mat' -> 7
+
+% --- Choix de l'électrode ---
+num_electrode = 14;     % 1 à 16 (14 = O1, 15 = Oz, 16 = O2...)
+noms_electrodes = {'FP1','FP2','FC5','FC6','FZ','T7','CZ','T8', ...
+                   'P7','P3','PZ','P4','P8','O1','Oz','O2'};
+nom_electrode = noms_electrodes{num_electrode};
+col_electrode = num_electrode + 1;   % colonne 1 = temps, 2 à 17 = EEG
+
 col18 = s(:,18);
 debut = find(col18 == 1);
 fin = debut + 5120;
 fenetrefermee = [debut fin];
-
 col19 = s(:,19);
 debut2 = find(col19 == 1);
 fin2 = debut2 + 5120;
 fenetreouvert = [debut2 fin2];
-
 Fs = 512;
 nb_blocs = min(size(fenetrefermee, 1), size(fenetreouvert, 1));
 figure('Position', [100 100 1200 700]);
@@ -18,8 +32,7 @@ for i = 1:nb_blocs
     bloc1 = fenetrefermee(i,:);
     lignes1 = bloc1(1):1:bloc1(2);
     valeursbloc1 = s(lignes1,:);
-    E1 = valeursbloc1(:,[1 2]);
-
+    E1 = valeursbloc1(:,[1 col_electrode]);                          
     N = length(E1(:,2));
     fftE1 = abs(fft(E1(:,2) - mean(E1(:,2))) / N);
     fftE1 = fftE1(1:floor(N/2)+1);
@@ -30,8 +43,7 @@ for i = 1:nb_blocs
     bloc2 = fenetreouvert(i,:);
     lignes2 = bloc2(1):1:bloc2(2);
     valeursbloc2 = s(lignes2,:);
-    E2 = valeursbloc2(:,[1 2]);
-
+    E2 = valeursbloc2(:,[1 col_electrode]);                         
     N2 = length(E2(:,2));
     fftE2 = abs(fft(E2(:,2) - mean(E2(:,2))) / N2);
     fftE2 = fftE2(1:floor(N2/2)+1);
@@ -59,3 +71,6 @@ for i = 1:nb_blocs
     legend('Fermée', 'Ouverte');
     grid on;
 end
+
+sgtitle(['Sujet ' sprintf('%02d', sujet) ' - Électrode ' ...
+         nom_electrode ]);
